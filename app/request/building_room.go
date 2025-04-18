@@ -1,13 +1,11 @@
 package request
 
 type CreateBuilding_Room struct {
-	RoomID string `form:"room_id" binding:"required"`
+	RoomID     string `form:"room_id" binding:"required"`
 	BuildingID string `form:"building_id" binding:"required"`
 }
 
-
-
-type UpdateBuilding_Room struct{
+type UpdateBuilding_Room struct {
 	CreateBuilding_Room
 }
 
@@ -20,6 +18,6 @@ type ListBuilding_Room struct {
 	SearchBy string `form:"search_by"`
 }
 
-type GetByIdBuilding_Room struct{
+type GetByIdBuilding_Room struct {
 	ID string `uri:"id" binding:"required"`
 }

@@ -15,3 +15,4 @@ func GetStatus(t Status) Status {
 		return STATUS_INACTIVE
 	}
 }
+

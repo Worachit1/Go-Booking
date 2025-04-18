@@ -1,9 +1,9 @@
 package response
 
-type Building_RoomResponse struct{
-	ID 		  string `bun:"id"`
-	RoomID    string `bun:"room_id"`
-	BuildingID string `bun:"building_id"`
-	CreatedAt int64  `bun:"created_at"`
-	UpdatedAt int64  `bun:"updated_at"`
+type Building_RoomResponse struct {
+    BuildingRoomID string `json:"building_room_id"` // Added field for building_room_id
+    RoomID         string `json:"room_id"`
+    RoomName       string `json:"room_name"`
+    BuildingID     string `json:"building_id"`
+    BuildingName   string `json:"building_name"`
 }

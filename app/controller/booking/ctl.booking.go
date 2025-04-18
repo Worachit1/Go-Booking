@@ -1,4 +1,4 @@
-package building_room
+package booking
 
 import (
 	"app/app/request"
@@ -8,9 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+
 func (ctl *Controller) Create(ctx *gin.Context) {
-	req := request.CreateBuilding_Room{}
-	if err := ctx.ShouldBind(&req); err != nil {
+	req := request.CreateBooking{}
+	if err := ctx.Bind(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
@@ -30,13 +31,13 @@ func (ctl *Controller) Create(ctx *gin.Context) {
 }
 
 func (ctl *Controller) Update(ctx *gin.Context) {
-	ID := request.GetByIdBuilding_Room{}
+	ID := request.GetByIdBooking{}
 	if err := ctx.BindUri(&ID); err != nil {
 		logger.Err(err.Error())
 		response.BadRequest(ctx, err.Error())
 		return
 	}
-	body := request.UpdateBuilding_Room{}
+	body := request.UpdateBooking{}
 	if err := ctx.Bind(&body); err != nil {
 		logger.Err(err.Error())
 		response.BadRequest(ctx, err.Error())
@@ -58,7 +59,7 @@ func (ctl *Controller) Update(ctx *gin.Context) {
 }
 
 func (ctl *Controller) List(ctx *gin.Context) {
-	req := request.ListBuilding_Room{}
+	req := request.ListBooking{}
 	if err := ctx.Bind(&req); err != nil {
 		logger.Err(err.Error())
 		response.BadRequest(ctx, err.Error())
@@ -91,14 +92,14 @@ func (ctl *Controller) List(ctx *gin.Context) {
 }
 
 func (ctl *Controller) Get(ctx *gin.Context) {
-	ID := request.GetByIdBuilding_Room{}
+	ID := request.GetByIdBooking{}
 	if err := ctx.BindUri(&ID); err != nil {
 		logger.Err(err.Error())
 		response.BadRequest(ctx, err.Error())
 		return
 	}
 
-	data, err := ctl.Service.Get(ctx, ID)
+	data, err := ctl.Service.Get(ctx,ID)
 	if err != nil {
 		logger.Errf(err.Error())
 		response.InternalError(ctx,err.Error())
@@ -108,7 +109,7 @@ func (ctl *Controller) Get(ctx *gin.Context) {
 }
 
 func (ctl *Controller) Delete(ctx *gin.Context) {
-	ID := request.GetByIdBuilding_Room{}
+	ID := request.GetByIdBooking{}
 	if err := ctx.BindUri(&ID); err != nil {
 		logger.Err(err.Error())
 		response.BadRequest(ctx, err.Error())

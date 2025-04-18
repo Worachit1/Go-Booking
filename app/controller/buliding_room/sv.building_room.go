@@ -3,8 +3,11 @@ package building_room
 import (
 	"app/app/model"
 	"app/app/request"
+	"app/app/response"
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 )
 
 func (s *Service) Create(ctx context.Context, req request.CreateBuilding_Room) (*model.Building_Room, bool, error) {
@@ -32,94 +35,115 @@ func (s *Service) Create(ctx context.Context, req request.CreateBuilding_Room) (
 	return m, false, err
 }
 
-// func (s *Service) Update(ctx context.Context, req request.UpdateBuilding, id request.GetByIdBuilding) (*model.Building, bool, error) {
-// 	ex, err := s.db.NewSelect().Table("buildings").Where("id = ?", id.ID).Exists(ctx)
-// 	if err != nil {
-// 		return nil, false, err
-// 	}
-// 	if !ex {
-// 		return nil, false, err
-// 	}
+func (s *Service) Update(ctx context.Context, req request.UpdateBuilding_Room, id request.GetByIdBuilding_Room) (*model.Building_Room, bool, error) {
+	ex, err := s.db.NewSelect().
+		Model((*model.Building_Room)(nil)).
+		Where("room_id = ?", req.RoomID).
+		Where("id != ?", id.ID).
+		Exists(ctx)
 
-// 	m := &model.Building{
-// 		ID:          id.ID,
-// 		Name:        req.Name,
-// 	}
+	if err != nil {
+		return nil, false, err
+	}
+	if ex {
+		return nil, true, errors.New("room_id นี้มีอยู่แล้ว")
+	}
 
-// 	m.SetUpdateNow()
+	m := &model.Building_Room{
+		ID:          id.ID,
+		RoomID:      req.RoomID,
+		BuildingID:  req.BuildingID,
+	}
 
-// 	_, err = s.db.NewUpdate().Model(m).
-// 		Set("name = ?name").
-// 		Set("updated_at = ?updated_at").
-// 		WherePK().
-// 		OmitZero().
-// 		Returning("*").
-// 		Exec(ctx)
-// 	if err != nil {
-// 		if strings.Contains(err.Error(), "duplicate key value") {
-// 			return nil, true, errors.New("building already exists")
-// 		}
-// 	}
+	m.SetUpdateNow()
 
-// 	return m, false, err
-// }
+	_, err = s.db.NewUpdate().Model(m).
+		Set("room_id = ?room_id").
+		Set("building_id = ?building_id").
+		Set("updated_at = ?updated_at").
+		WherePK().
+		OmitZero().
+		Returning("*").
+		Exec(ctx)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key value") {
+			return nil, true, errors.New("building_room already exists")
+		}
+	}
 
-// func (s *Service) List(ctx context.Context, req request.ListBuilding) ([]response.BuildingResponse, int, error) {
-// 	offset := (req.Page - 1) * req.Size
-// 	m := []response.BuildingResponse{}
+	return m, false, err
+}
 
-// 	query := s.db.NewSelect().
-// 		TableExpr("buildings as b").
-// 		Column("b.id", "b.name", "b.updated_at").Where("deleted_at IS NULL")
+func (s *Service) List(ctx context.Context, req request.ListBuilding_Room) ([]response.Building_RoomResponse, int, error) {
+	offset := (req.Page - 1) * req.Size
+	m := []response.Building_RoomResponse{}
 
-// 	// Filtering
-// 	if req.Search != "" {
-// 		search := "%" + strings.ToLower(req.Search) + "%"
-// 		if req.SearchBy != "" {
-// 			searchBy := strings.ToLower(req.SearchBy)
-// 			query = query.Where(fmt.Sprintf("LOWER(r.%s) LIKE ?", searchBy), search)
-// 		} else {
-// 			query = query.Where("LOWER(b.name) LIKE ?", search)
-// 		}
-// 	}
+	query := s.db.NewSelect().
+		TableExpr("building_rooms AS br").
+		ColumnExpr("br.id AS building_room_id").
+		ColumnExpr("r.id AS room_id").
+		ColumnExpr("r.name AS room_name").
+		ColumnExpr("b.id AS building_id").
+		ColumnExpr("b.name AS building_name").
+		Join("JOIN rooms AS r ON br.room_id::uuid = r.id"). // 👈 cast ถ้า type ไม่ตรง
+		Join("JOIN buildings AS b ON br.building_id::uuid = b.id").
+		Where("br.deleted_at IS NULL")
 
-// 	// Count total before pagination
-// 	count, err := query.Count(ctx)
-// 	if err != nil {
-// 		return nil, 0, err
-// 	}
+	// Filtering
+	if req.Search != "" {
+		search := "%" + strings.ToLower(req.Search) + "%"
+		if req.SearchBy != "" {
+			searchBy := strings.ToLower(req.SearchBy)
+			query = query.Where(fmt.Sprintf("LOWER(r.%s) LIKE ?", searchBy), search)
+		} else {
+			query = query.Where("LOWER(r.name) LIKE ? OR LOWER(bd.name) LIKE ?", search, search)
+		}
+	}
 
-// 	// Order handling
-// 	order := fmt.Sprintf("b.%s %s", req.SortBy, req.OrderBy)
+	// Count total before pagination
+	count, err := query.Count(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
 
-// 	// Final query with order + pagination
-// 	err = query.Order(order).Limit(req.Size).Offset(offset).Scan(ctx, &m)
-// 	if err != nil {
-// 		return nil, 0, err
-// 	}
+	// Order handling
+	order := fmt.Sprintf("b.%s %s", req.SortBy, req.OrderBy)
 
-// 	return m, count, nil
-// }
+	// Final query with order + pagination
+	err = query.Order(order).Limit(req.Size).Offset(offset).Scan(ctx, &m)
+	if err != nil {
+		return nil, 0, err
+	}
 
-// func (s *Service) Get(ctx context.Context, id request.GetByIdBuilding) (*response.BuildingResponse, error) {
-// 	m := response.BuildingResponse{}
+	return m, count, nil
+}
 
-// 	err := s.db.NewSelect().
-// 		TableExpr("buildings as b").
-// 		Column("b.id", "b.name", "b.updated_at").Where("deleted_at IS NULL").
-// 		Where("id = ?", id.ID).Where("deleted_at IS NULL").Scan(ctx, &m)
-// 	return &m, err
-// }
+func (s *Service) Get(ctx context.Context, id request.GetByIdBuilding_Room) (*response.Building_RoomResponse, error) {
+	m := response.Building_RoomResponse{}
 
-// func (s *Service) Delete(ctx context.Context, id request.GetByIdBuilding) error {
-// 	ex, err := s.db.NewSelect().Table("buildings").Where("id = ?", id.ID).Where("deleted_at IS NULL").Exists(ctx)
-// 	if err != nil {
-// 		return  err
-// 	}
-// 	if !ex {
-// 		return errors.New("building not found")
-// 	}
+	err := s.db.NewSelect().
+	TableExpr("building_rooms AS br").
+	ColumnExpr("br.id AS building_room_id").
+	ColumnExpr("r.id AS room_id").
+	ColumnExpr("r.name AS room_name").
+	ColumnExpr("b.id AS building_id").
+	ColumnExpr("b.name AS building_name").
+	Join("JOIN rooms AS r ON br.room_id::uuid = r.id"). // 👈 cast ถ้า type ไม่ตรง
+	Join("JOIN buildings AS b ON br.building_id::uuid = b.id").
+	Where("br.deleted_at IS NULL").
+	Scan(ctx, &m)
+	return &m, err
+}
 
-// 	_, err = s.db.NewDelete().Model((*model.Building)(nil)).Where("id = ?",id.ID).Exec(ctx)
-// 	return err
-// }
+func (s *Service) Delete(ctx context.Context, id request.GetByIdBuilding_Room) error {
+	ex, err := s.db.NewSelect().Table("building_rooms").Where("id = ?", id.ID).Where("deleted_at IS NULL").Exists(ctx)
+	if err != nil {
+		return  err
+	}
+	if !ex {
+		return errors.New("building_room not found")
+	}
+
+	_, err = s.db.NewDelete().Model((*model.Building_Room)(nil)).Where("id = ?",id.ID).Exec(ctx)
+	return err
+}
