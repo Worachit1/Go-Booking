@@ -3,6 +3,7 @@ package request
 type CreateBooking struct {
 	UserID      string `json:"user_id"`
 	RoomID      string `json:"room_id"`
+	Title	   string `json:"title"`
 	Description string `json:"description"`
 	StartTime   string `json:"start_time"`
 	EndTime     string `json:"end_time"`

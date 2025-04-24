@@ -61,7 +61,7 @@ func (s *Service) List(ctx context.Context, req request.ListBuilding) ([]respons
 
 	query := s.db.NewSelect().
 		TableExpr("buildings as b").
-		Column("b.id", "b.name", "b.updated_at").Where("deleted_at IS NULL")
+		Column("b.id", "b.name", "b.created_at", "b.updated_at").Where("deleted_at IS NULL")
 
 	// Filtering
 	if req.Search != "" {

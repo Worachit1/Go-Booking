@@ -6,4 +6,7 @@ type Building_RoomResponse struct {
     RoomName       string `json:"room_name"`
     BuildingID     string `json:"building_id"`
     BuildingName   string `json:"building_name"`
+    CreatedAt      string `json:"created_at"`
+    UpdatedAt      string `json:"updated_at"`
+    
 }

@@ -7,6 +7,7 @@ type BookingResponse struct {
 	UserLastName string `json:"user_lastname" bun:"user_lastname"`
 	RoomID       string `json:"room_id" bun:"room_id"`
 	RoomName     string `json:"room_name" bun:"room_name"`
+	Title		string `json:"title" bun:"title"`
 	Description  string `json:"description" bun:"description"`
 	StartTime    string `json:"start_time" bun:"start_time"`
 	EndTime      string `json:"end_time" bun:"end_time"`
