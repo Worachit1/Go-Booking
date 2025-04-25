@@ -176,7 +176,7 @@ func (s *Service) List(ctx context.Context, req request.ListRoom) ([]response.Ro
 
 	query := s.db.NewSelect().
 		TableExpr("rooms as r").
-		Column("r.id", "r.name", "r.description", "r.capacity", "r.image_url", "r.created_at", "r.updated_at").Where("deleted_at IS NULL")
+		Column("r.id", "r.name", "r.description", "r.capacity", "r.image_url", "r.created_at", "r.updated_at").Where("deleted_at IS NULL").OrderExpr("r.name ASC")
 
 		if req.Search != "" {
 			searchBy := strings.ToLower(req.SearchBy)

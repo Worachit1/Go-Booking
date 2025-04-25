@@ -87,9 +87,11 @@ func (s *Service) List(ctx context.Context, req request.ListBuilding_Room) ([]re
 		ColumnExpr("b.name AS building_name").
 		ColumnExpr("br.created_at AS created_at").
 		ColumnExpr("br.updated_at AS updated_at").
-		Join("JOIN rooms AS r ON br.room_id::uuid = r.id"). // 👈 cast ถ้า type ไม่ตรง
+		Join("JOIN rooms AS r ON br.room_id::uuid = r.id").
 		Join("JOIN buildings AS b ON br.building_id::uuid = b.id").
-		Where("br.deleted_at IS NULL")
+		Where("br.deleted_at IS NULL").
+		OrderExpr("r.name ASC")
+
 
 	// Filtering
 	if req.Search != "" {
