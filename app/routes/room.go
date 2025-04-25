@@ -16,5 +16,6 @@ func Room(router *gin.RouterGroup) {
 		room.GET("/list",ctl.RoomCtl.List)
 		room.GET("/:id",ctl.RoomCtl.Get)
 		room.DELETE("/:id",ctl.RoomCtl.Delete)
+		room.POST("/upload", ctl.RoomCtl.UploadImage)
 	}
 }

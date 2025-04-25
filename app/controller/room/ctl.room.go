@@ -4,6 +4,13 @@ import (
 	"app/app/request"
 	"app/app/response"
 	"app/internal/logger"
+	"context"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/cloudinary/cloudinary-go/v2"
+	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 
 	"github.com/gin-gonic/gin"
 )
@@ -189,7 +196,7 @@ func (ctl *Controller) List(ctx *gin.Context) {
 		return
 	}
 
-	if req.Page == 0{
+	if req.Page == 0 {
 		req.Page = 1
 	}
 	if req.Page == 0 {
@@ -205,12 +212,12 @@ func (ctl *Controller) List(ctx *gin.Context) {
 	}
 
 	data, total, err := ctl.Service.List(ctx, req)
-	if err != nil{
+	if err != nil {
 		logger.Errf(err.Error())
-		response.InternalError(ctx,err.Error())
+		response.InternalError(ctx, err.Error())
 		return
 	}
-	response.SuccessWithPaginate(ctx,data,req.Size,req.Page,total)
+	response.SuccessWithPaginate(ctx, data, req.Size, req.Page, total)
 
 }
 
@@ -222,10 +229,10 @@ func (ctl *Controller) Get(ctx *gin.Context) {
 		return
 	}
 
-	data, err := ctl.Service.Get(ctx,ID)
+	data, err := ctl.Service.Get(ctx, ID)
 	if err != nil {
 		logger.Errf(err.Error())
-		response.InternalError(ctx,err.Error())
+		response.InternalError(ctx, err.Error())
 		return
 	}
 	response.Success(ctx, data)
@@ -239,11 +246,61 @@ func (ctl *Controller) Delete(ctx *gin.Context) {
 		return
 	}
 
-	err := ctl.Service.Delete(ctx,ID)
+	err := ctl.Service.Delete(ctx, ID)
 	if err != nil {
 		logger.Errf(err.Error())
-		response.InternalError(ctx,err.Error())
+		response.InternalError(ctx, err.Error())
 		return
 	}
 	response.Success(ctx, nil)
+}
+
+func (ctl *Controller) UploadImage(ctx *gin.Context) {
+	file, err := ctx.FormFile("file")
+	if err != nil {
+		logger.Errf("No file uploaded: %v", err)
+		response.BadRequest(ctx, "กรุณาเลือกไฟล์รูปภาพ")
+		return
+	}
+
+	// เปิดไฟล์
+	src, err := file.Open()
+	if err != nil {
+		logger.Errf("Cannot open uploaded file: %v", err)
+		response.InternalError(ctx, "ไม่สามารถเปิดไฟล์ได้")
+		return
+	}
+	defer src.Close()
+
+	// สร้าง Cloudinary client
+	cld, err := cloudinary.NewFromParams(
+		os.Getenv("CLOUDINARY_CLOUD_NAME"),
+		os.Getenv("CLOUDINARY_API_KEY"),
+		os.Getenv("CLOUDINARY_API_SECRET"),
+	)
+	if err != nil {
+		logger.Errf("Cloudinary config error: %v", err)
+		response.InternalError(ctx, "การตั้งค่า Cloudinary ไม่ถูกต้อง")
+		return
+	}
+
+	// กำหนด timeout สำหรับ upload
+	uploadCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	// อัปโหลดไปยัง Cloudinary
+	uploadResult, err := cld.Upload.Upload(uploadCtx, src, uploader.UploadParams{
+		Folder:   "room",
+		PublicID: fmt.Sprintf("room_%d", time.Now().UnixNano()), // ตั้งชื่อให้ unique
+	})
+	if err != nil {
+		logger.Errf("Upload to Cloudinary failed: %v", err)
+		response.InternalError(ctx, "ไม่สามารถอัปโหลดรูปภาพได้")
+		return
+	}
+
+	// ส่งกลับ URL
+	response.Success(ctx, gin.H{
+		"url": uploadResult.SecureURL,
+	})
 }
