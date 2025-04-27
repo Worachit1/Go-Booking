@@ -15,6 +15,7 @@ func Booking(router *gin.RouterGroup) {
 		booking.PATCH("/:id", ctl.BookingCtl.Update)
 		booking.GET("/list", ctl.BookingCtl.List)
 		booking.GET("/:id", ctl.BookingCtl.Get)
+		booking.GET("/room/:id", ctl.BookingCtl.GetByRoomId)
 		booking.DELETE("/:id", ctl.BookingCtl.Delete)
 	}
 }

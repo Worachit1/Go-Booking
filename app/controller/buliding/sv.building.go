@@ -70,7 +70,7 @@ func (s *Service) List(ctx context.Context, req request.ListBuilding) ([]respons
 		search := "%" + strings.ToLower(req.Search) + "%"
 		if req.SearchBy != "" {
 			searchBy := strings.ToLower(req.SearchBy)
-			query = query.Where(fmt.Sprintf("LOWER(r.%s) LIKE ?", searchBy), search)
+			query = query.Where(fmt.Sprintf("LOWER(b.%s) LIKE ?", searchBy), search)
 		} else {
 			query = query.Where("LOWER(b.name) LIKE ?", search)
 		}
