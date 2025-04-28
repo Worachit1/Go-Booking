@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2"
@@ -140,25 +141,88 @@ import (
 // }
 
 func (ctl *Controller) Create(ctx *gin.Context) {
-	req := request.CreateRoom{}
-	if err := ctx.Bind(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
-		return
-	}
+    // อ่านฟิลด์ทีละตัว ไม่ใช้ ShouldBind
+    name := ctx.PostForm("name")
+    description := ctx.PostForm("description")
+    capacityStr := ctx.PostForm("capacity")
 
-	data, mserr, err := ctl.Service.Create(ctx, req)
-	if err != nil {
-		ms := "Internal Server Error"
-		if mserr {
-			ms = err.Error()
-		}
-		logger.Err(err.Error())
-		response.InternalError(ctx, ms)
-		return
-	}
+    if name == "" || description == "" || capacityStr == "" {
+        response.BadRequest(ctx, "ข้อมูลห้องไม่ครบ")
+        return
+    }
 
-	response.Success(ctx, data)
+    // แปลง capacity จาก string เป็น int
+    capacity, err := strconv.Atoi(capacityStr)
+    if err != nil {
+        response.BadRequest(ctx, "จำนวนคนต้องเป็นตัวเลข")
+        return
+    }
+
+    // รับไฟล์รูปภาพ
+    file, err := ctx.FormFile("image_url")
+    if err != nil {
+        logger.Errf("No file uploaded: %v", err)
+        response.BadRequest(ctx, "กรุณาเลือกไฟล์รูปภาพ")
+        return
+    }
+
+    // (จากตรงนี้) - เปิดไฟล์ อัปโหลด Cloudinary
+    src, err := file.Open()
+    if err != nil {
+        logger.Errf("Cannot open uploaded file: %v", err)
+        response.InternalError(ctx, "ไม่สามารถเปิดไฟล์ได้")
+        return
+    }
+    defer src.Close()
+
+    // อัปโหลด Cloudinary ตามเดิม
+    cld, err := cloudinary.NewFromParams(
+        os.Getenv("CLOUDINARY_CLOUD_NAME"),
+        os.Getenv("CLOUDINARY_API_KEY"),
+        os.Getenv("CLOUDINARY_API_SECRET"),
+    )
+    if err != nil {
+        logger.Errf("Cloudinary config error: %v", err)
+        response.InternalError(ctx, "การตั้งค่า Cloudinary ไม่ถูกต้อง")
+        return
+    }
+
+    uploadCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+    defer cancel()
+
+    uploadResult, err := cld.Upload.Upload(uploadCtx, src, uploader.UploadParams{
+        Folder:   "room",
+        PublicID: fmt.Sprintf("room_%d", time.Now().UnixNano()),
+    })
+    if err != nil {
+        logger.Errf("Upload to Cloudinary failed: %v", err)
+        response.InternalError(ctx, "ไม่สามารถอัปโหลดรูปภาพได้")
+        return
+    }
+
+    // เตรียมสร้างข้อมูลห้อง
+    req := request.CreateRoom{
+        Name:        name,
+        Description: description,
+		Capacity:    int64(capacity),
+        Image_url:   uploadResult.SecureURL,
+    }
+
+    // เรียก Service.Create
+    data, mserr, err := ctl.Service.Create(ctx, req)
+    if err != nil {
+        ms := "Internal Server Error"
+        if mserr {
+            ms = err.Error()
+        }
+        logger.Err(err.Error())
+        response.InternalError(ctx, ms)
+        return
+    }
+
+    response.Success(ctx, data)
 }
+
 
 func (ctl *Controller) Update(ctx *gin.Context) {
 	ID := request.GetByIdRoom{}
@@ -256,7 +320,7 @@ func (ctl *Controller) Delete(ctx *gin.Context) {
 }
 
 func (ctl *Controller) UploadImage(ctx *gin.Context) {
-	file, err := ctx.FormFile("file")
+	file, err := ctx.FormFile("image_url")
 	if err != nil {
 		logger.Errf("No file uploaded: %v", err)
 		response.BadRequest(ctx, "กรุณาเลือกไฟล์รูปภาพ")

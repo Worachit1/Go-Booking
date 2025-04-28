@@ -1,13 +1,13 @@
 package request
 
 type CreateRoom struct {
-	Name 		string  `json:"name"`
-	Description string  `json:"description"`
-	Capacity 	int64 	`json:"capacity"`
-	Image_url 	string  `json:"image_url"`
+	Name        string `json:"name" form:"name"`
+	Description string `json:"description" form:"description"`
+	Capacity    int64  `json:"capacity" form:"capacity"`
+	Image_url   string `json:"image_url" form:"image_url"`
 }
 
-type UpdateRoom struct{
+type UpdateRoom struct {
 	CreateRoom
 }
 
@@ -20,6 +20,6 @@ type ListRoom struct {
 	SearchBy string `form:"search_by"`
 }
 
-type GetByIdRoom struct{
+type GetByIdRoom struct {
 	ID string `uri:"id" binding:"required"`
 }

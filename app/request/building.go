@@ -1,7 +1,7 @@
 package request
 
 type CreateBuilding struct {
-	Name string  `json:"name"`
+	Name string  `json:"name" form:"name"` 
 }
 
 type UpdateBuilding struct{

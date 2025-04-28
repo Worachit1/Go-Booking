@@ -117,20 +117,31 @@ import (
 // }
 
 func (s *Service) Create(ctx context.Context, req request.CreateRoom) (*model.Room, bool, error) {
+	// ตรวจสอบข้อมูลห้องก่อนที่จะบันทึก
+	if req.Name == "" || req.Description == "" || req.Capacity == 0 || req.Image_url == "" {
+		return nil, false, errors.New("ข้อมูลห้องไม่ครบถ้วน")
+	}
+
+	// สร้างโมเดลห้องใหม่
 	m := model.Room{
 		Name:        req.Name,
 		Description: req.Description,
 		Capacity:    req.Capacity,
-		Image_url:   req.Image_url,
+		Image_url:   req.Image_url, // ค่านี้ควรจะได้จาก Cloudinary
 	}
+
+	// ทำการบันทึกข้อมูลห้องลงในฐานข้อมูล
 	_, err := s.db.NewInsert().Model(&m).Exec(ctx)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key value") {
 			return nil, true, errors.New("room already exists")
 		}
+		return nil, false, err
 	}
-	return &m, false, err
+
+	return &m, false, nil
 }
+
 
 func (s *Service) Update(ctx context.Context, req request.UpdateRoom, id request.GetByIdRoom) (*model.Room, bool, error) {
 	ex, err := s.db.NewSelect().Table("rooms").Where("id = ?", id.ID).Exists(ctx)
